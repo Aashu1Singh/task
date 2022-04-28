@@ -3,7 +3,6 @@ const mongoose = require("mongoose")
 const bodyParser = require("body-parser");
 const csv = require('csvtojson');
 const ejs = require("ejs");
-const { Db } = require("mongodb");
 const { Schema } = mongoose;
 
 const app = express()
@@ -16,18 +15,26 @@ app.use(bodyParser.urlencoded({ extended: true }));
 main().catch(err => console.log(err));
 
 async function main() {
-    await mongoose.connect('mongodb://localhost:27017/test');
+    await mongoose.connect('mongodb://localhost:27017/clientData');
 }
 
 
-const dataSchema = new Schema({
+const inputDataSchema = new Schema({
     name: String,
     title: String,
     email: String
-
 });
 
-const Data = mongoose.model('Data', dataSchema);
+const csvDataSchema = new Schema({
+    Name: String,
+    Title: String,
+    Email: String,
+    Linkedin: String,
+    Company: String
+});
+
+const InputData = mongoose.model('InputData', inputDataSchema);
+const FileData = mongoose.model('FileData', csvDataSchema);
 
 
 app.get("/", (req, res) => {
@@ -35,23 +42,40 @@ app.get("/", (req, res) => {
 });
 
 app.post("/", (req, res) => {
-    const name = req.body.name;
-    const tile = req.body.title;
-    const email = req.body.email;
+    const inputName = req.body.inputName;
+    const inputTitle = req.body.inputTitle;
+    const inputEmail = req.body.inputEmail;
     const csvFilePath = req.body.file;
+
+    const FileData1 = new InputData({
+        name: inputName,
+        title: inputTitle,
+        email: inputEmail
+    });
+    FileData1.save();
 
     csv()
         .fromFile(csvFilePath)
         .then((jsonObj) => {
-            
+
             jsonObj.map((element, index) => {
                 // console.log(element.Name);
-                index = new Data({ name: element.Name, email: element.Email, title: element.Title });
-              index.save();
+                index = new FileData({
+                    Name: element.Name,
+                    Email: element.Email,
+                    Title: element.Title,
+                    Linkedin: element.Linkedin,
+                    Company: element.Company
+                });
+                index.save();
             });
-        })
+        });
 
-    res.render("index");
+    res.render("submit");
+});
+
+app.get("/resubmit", (req, res) => {
+    res.render("index")
 })
 
 app.listen(3000, (req, res) => {
